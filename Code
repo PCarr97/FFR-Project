@@ -7,6 +7,7 @@ import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
+
 #Import Data and Data Head
 df = pd.read_csv(r'C:\Users\ptc97\OneDrive\Documents\Wages FFR Data-PTC97.csv', parse_dates=True, index_col='DATE')
 df['WAGES_REAL'] = df['WAGES'] / (df['CPI'] / 100)
@@ -19,14 +20,17 @@ plt.title('Fed Rate vs. Wages')
 plt.xlabel('Wages')
 plt.ylabel('FFR')
 
+
 #Correlation Table
 df_alt = pd.DataFrame(df,columns=['WAGES_REAL', 'FFR', 'UNEMP_RATE', 'PRODUCTIVITY', 'GDP', 'UNION', 'RECESSION'])
 df_alt.corr()
+
 
 #Regression
 results = smf.ols('WAGES_REAL ~ FFR + UNEMP_RATE + PRODUCTIVITY + np.power(GDP, 3) + UNION + RECESSION + UNION*UNEMP_RATE', 
                   data=df).fit(cov_type='HC1')
 results.summary()
+
 
 #Dickey Fuller Test
 from statsmodels.tsa.stattools import adfuller
@@ -40,13 +44,13 @@ for key, value in result[4].items():
     print(f'   {key}, {value}') 
     
     
-    
 #Make Unemployment Rate Stationary ???
 from statsmodels.tsa.seasonal import seasonal_decompose
 decomp_unemp = seasonal_decompose(df.UNEMP_RATE, model='additive', extrapolate_trend='freq')
 UNEMP_deseason = df.UNEMP_RATE / decomp_unemp.seasonal
 UNEMP_station = UNEMP_deseason - decomp_unemp.trend
 df['UNEMP_RATE_station'] = (df.UNEMP_RATE / decomp_unemp.seasonal) - decomp_unemp.trend
+
 
 #Sample Entropy
 def sampen(L, m, r):
