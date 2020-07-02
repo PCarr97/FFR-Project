@@ -1,0 +1,69 @@
+from dateutil.parser import parse 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+
+#Import Data and Data Head
+df = pd.read_csv(r'C:\Users\ptc97\OneDrive\Documents\Wages FFR Data-PTC97.csv', parse_dates=True, index_col='DATE')
+df['WAGES_REAL'] = df['WAGES'] / (df['CPI'] / 100)
+df.head()
+
+#Plot FFR against Real Wages
+plt.rcParams.update({'figure.figsize': (7.5, 4.5), 'figure.dpi': 120})
+plt.scatter(df.WAGES_REAL,df.FFR, s=15)
+plt.title('Fed Rate vs. Wages')
+plt.xlabel('Wages')
+plt.ylabel('FFR')
+
+#Correlation Table
+df_alt = pd.DataFrame(df,columns=['WAGES_REAL', 'FFR', 'UNEMP_RATE', 'PRODUCTIVITY', 'GDP', 'UNION', 'RECESSION'])
+df_alt.corr()
+
+#Regression
+results = smf.ols('WAGES_REAL ~ FFR + UNEMP_RATE + PRODUCTIVITY + np.power(GDP, 3) + UNION + RECESSION + UNION*UNEMP_RATE', 
+                  data=df).fit(cov_type='HC1')
+results.summary()
+
+#Dickey Fuller Test
+from statsmodels.tsa.stattools import adfuller
+import math
+
+result = adfuller(df.UNEMP_RATE, autolag='AIC')
+print(f'ADF Statistic: {result[0]}')
+print(f'p-value: {result[1]}')
+for key, value in result[4].items():
+    print('Critial Values:')
+    print(f'   {key}, {value}') 
+    
+    
+    
+#Make Unemployment Rate Stationary ???
+from statsmodels.tsa.seasonal import seasonal_decompose
+decomp_unemp = seasonal_decompose(df.UNEMP_RATE, model='additive', extrapolate_trend='freq')
+UNEMP_deseason = df.UNEMP_RATE / decomp_unemp.seasonal
+UNEMP_station = UNEMP_deseason - decomp_unemp.trend
+df['UNEMP_RATE_station'] = (df.UNEMP_RATE / decomp_unemp.seasonal) - decomp_unemp.trend
+
+#Sample Entropy
+def sampen(L, m, r):
+    N = len(L)
+    B = 0.0
+    A = 0.0
+    
+    xmi = np.array([L[i : i + m] for i in range(N - m)])
+    xmj = np.array([L[i : i + m] for i in range(N - m + 1)])
+
+    B = np.sum([np.sum(np.abs(xmii - xmj).max(axis=1) <= r) - 1 for xmii in xmi])
+
+    m += 1
+    xm = np.array([L[i : i + m] for i in range(N - m + 1)])
+
+    A = np.sum([np.sum(np.abs(xmi - xm).max(axis=1) <= r) - 1 for xmi in xm])
+
+    return -np.log(A / B)
+
+sampen(df.WAGES_REAL, m=2, r=0.2*np.std(df.WAGES_REAL))
