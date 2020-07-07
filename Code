@@ -32,7 +32,7 @@ results = smf.ols('WAGES_REAL ~ FFR + UNEMP_RATE + PRODUCTIVITY + np.power(GDP, 
 results.summary()
 
 
-#Dickey Fuller Test
+#Dickey Fuller Test on Unemployment Rate
 from statsmodels.tsa.stattools import adfuller
 import math
 
